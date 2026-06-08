@@ -1,0 +1,5 @@
+2026-02-10 17:47:27,210 - INFO - Extraction : Chargement du fichier CSV.
+2026-02-10 17:47:27,224 - INFO - Transform : Début du nettoyage des données.
+2026-02-10 17:47:27,253 - INFO - Transform : Nettoyage terminé.
+2026-02-10 17:47:27,253 - INFO - Build Features : Création des nouvelles colonnes.
+2026-02-10 17:47:27,261 - INFO - Load : Exportation des fichiers vers /outputs.

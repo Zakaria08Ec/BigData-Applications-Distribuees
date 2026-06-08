@@ -1,0 +1,2 @@
+{"event_id": "evt_f712ec2ef3ef", "type": "order_created", "timestamp": 1778596615.673114, "partition_key": "Paris", "payload": {"order_id": "cmd_4c610110", "customer": "Alice", "amount": 150.0}}
+{"event_id": "evt_87bc4e34366a", "type": "order_created", "timestamp": 1778596615.673114, "partition_key": "Paris", "payload": {"order_id": "cmd_b9032720", "customer": "Charlie", "amount": 99.9}}

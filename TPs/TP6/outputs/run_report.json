@@ -1,0 +1,9 @@
+{
+  "events_processed": 39,
+  "windows_flushed": 11,
+  "late_accepted": 9,
+  "dropped": 1,
+  "duration_seconds": 4.04,
+  "throughput_eps": 9.65,
+  "remaining_state_keys": 0
+}

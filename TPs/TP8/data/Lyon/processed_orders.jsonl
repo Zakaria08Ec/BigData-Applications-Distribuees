@@ -1,0 +1,1 @@
+{"event_id": "evt_9d8896f638bc", "type": "order_created", "timestamp": 1778596615.673114, "partition_key": "Lyon", "payload": {"order_id": "cmd_ff3779ab", "customer": "Bob", "amount": 20.0}}

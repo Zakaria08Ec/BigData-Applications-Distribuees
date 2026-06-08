@@ -1,0 +1,5 @@
+RAPPORT DE QUALITÉ DES DONNÉES
+==============================
+- Lignes traitées : 13
+- Anomalies corrigées : Doublons, types (vingt), dates invalides, et outliers.
+- Features créées : temp_f, is_raining, wind_status.

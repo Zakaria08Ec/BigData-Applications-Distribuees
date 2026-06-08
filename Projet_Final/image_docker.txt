@@ -1,0 +1,4 @@
+Nom de l'image : smart-farm-ai
+Tag : latest
+Commande de build : docker build -t smart-farm-ai:latest .
+Commande de lancement : docker run -p 8000:8000 smart-farm-ai:latest

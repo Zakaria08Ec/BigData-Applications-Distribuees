@@ -1,0 +1,47 @@
+[
+  {
+    "event_id": "evt-001",
+    "reason": "late-accepted",
+    "lateness_s": 110.0
+  },
+  {
+    "event_id": "evt-002",
+    "reason": "late-accepted",
+    "lateness_s": 110.0
+  },
+  {
+    "event_id": "evt-003",
+    "reason": "late-accepted",
+    "lateness_s": 110.0
+  },
+  {
+    "event_id": "evt-004",
+    "reason": "late-accepted",
+    "lateness_s": 110.0
+  },
+  {
+    "event_id": "evt-005",
+    "reason": "late-accepted",
+    "lateness_s": 50.0
+  },
+  {
+    "event_id": "evt-006",
+    "reason": "late-accepted",
+    "lateness_s": 50.0
+  },
+  {
+    "event_id": "evt-007",
+    "reason": "late-accepted",
+    "lateness_s": 110.0
+  },
+  {
+    "event_id": "evt-008",
+    "reason": "late-accepted",
+    "lateness_s": 50.0
+  },
+  {
+    "event_id": "evt-009",
+    "reason": "late-accepted",
+    "lateness_s": 110.0
+  }
+]

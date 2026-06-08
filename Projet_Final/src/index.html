@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Farm AI - Platform</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.0/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.12.7/Recharts.min.js"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans overflow-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = Recharts;
+
+        function App() {
+            const [sidebarOpen, setSidebarOpen] = useState(false);
+            const [currentView, setCurrentView] = useState('home');
+            const [sensors, setSensors] = useState({});
+            const [connected, setConnected] = useState(false);
+            
+            // NOUVEAU : Mémoriser la zone sélectionnée dans l'onglet Analyse
+            const [selectedAnalysisZone, setSelectedAnalysisZone] = useState(null);
+            
+            // Historique Global (Stocke les données de TOUTES les zones en même temps)
+            const [chartData, setChartData] = useState([]);
+
+            const [chatOpen, setChatOpen] = useState(false);
+            const [chatMessages, setChatMessages] = useState([
+                { sender: 'bot', text: 'Hello! I am the farm\'s AI assistant. How can I help you today?' }
+            ]);
+            const [inputMsg, setInputMsg] = useState('');
+            const ws = useRef(null);
+
+            useEffect(() => {
+                connectWebSocket();
+                return () => {
+                    if (ws.current) ws.current.close();
+                };
+            }, []);
+
+            const connectWebSocket = () => {
+                ws.current = new WebSocket('ws://localhost:8000/ws/dashboard');
+                ws.current.onopen = () => setConnected(true);
+                ws.current.onclose = () => {
+                    setConnected(false);
+                    setTimeout(connectWebSocket, 3000);
+                };
+                ws.current.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    if (data.sensors) {
+                        setSensors(data.sensors);
+                        
+                        // LOGIQUE BIG DATA : On enregistre les mesures de TOUS les capteurs actifs
+                        const now = new Date();
+                        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+                        
+                        setChartData(prev => {
+                            const newPoint = { time: timeStr };
+                            let hasActive = false;
+                            
+                            Object.entries(data.sensors).forEach(([id, s]) => {
+                                if (s.online) {
+                                    newPoint[`temp_${id}`] = s.temperature;
+                                    newPoint[`hum_${id}`] = s.humidity;
+                                    hasActive = true;
+                                }
+                            });
+                            
+                            if (!hasActive) return prev; // Ne rien ajouter si tout est éteint
+                            
+                            const newArray = [...prev, newPoint];
+                            return newArray.length > 20 ? newArray.slice(newArray.length - 20) : newArray; // Garde 20 points
+                        });
+                    }
+                };
+            };
+
+            const sendAction = (sensorId, actionType) => {
+                if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+                    ws.current.send(JSON.stringify({
+                        command: 'actuate',
+                        sensor_id: parseInt(sensorId),
+                        action: actionType
+                    }));
+                }
+            };
+
+            const handleSendMessage = async (e) => {
+                e.preventDefault();
+                if (!inputMsg.trim()) return;
+                const userText = inputMsg;
+                setChatMessages(prev => [...prev, { sender: 'user', text: userText }]);
+                setInputMsg('');
+                try {
+                    const response = await fetch('http://localhost:8000/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: userText })
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        setChatMessages(prev => [...prev, { sender: 'bot', text: data.reply }]);
+                    }
+                } catch (error) {
+                    setChatMessages(prev => [...prev, { sender: 'bot', text: "⚠️ System error. Cannot reach API." }]);
+                }
+            };
+
+            const renderMenuBtn = (id, icon, label) => (
+                <button 
+                    onClick={() => setCurrentView(id)} 
+                    title={!sidebarOpen ? label : ''}
+                    className={`w-full flex items-center ${sidebarOpen ? 'px-4' : 'justify-center px-0'} py-3 rounded-xl transition-all duration-200 ${currentView === id ? 'bg-emerald-600 text-white shadow-md' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
+                    <i className={`fa-solid ${icon} text-lg ${sidebarOpen ? 'mr-3 w-6 text-center' : ''}`}></i>
+                    {sidebarOpen && <span className="font-semibold text-sm whitespace-nowrap">{label}</span>}
+                </button>
+            );
+
+            // --- VIEW : HOME ---
+            const renderHome = () => {
+                const activeSensorsCount = Object.values(sensors).filter(s => s.online).length;
+                return (
+                    <div className="animate-fade-in flex-1 overflow-y-auto pb-20">
+                        {/* BANNIÈRE MODIFIÉE */}
+                        <div className="relative h-64 bg-gradient-to-br from-emerald-600 via-emerald-800 to-gray-900 overflow-hidden rounded-b-[2rem] shadow-lg mx-2 mt-0">
+                            <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '24px 24px'}}></div>
+                            <div className="absolute inset-0 flex flex-col justify-center p-8 md:p-12 z-10">
+                                <span className="text-emerald-300 font-bold tracking-widest uppercase mb-2 text-[10px] md:text-xs flex items-center">
+                                    <i className="fa-solid fa-microchip mr-2"></i> EIDIA - Big Data & AI Analytics
+                                </span>
+                                <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-1 drop-shadow-md">
+                                    SmartFarm AI
+                                </h2>
+                                <h3 className="text-lg md:text-xl font-medium text-emerald-200 mb-4 drop-shadow-sm flex items-center">
+                                    <i className="fa-solid fa-user-tie text-sm mr-2 opacity-80"></i> Zakaria Ech-chafi
+                                </h3>
+                                <p className="text-sm md:text-base text-emerald-50 max-w-2xl font-light italic border-l-2 border-emerald-400 pl-3">
+                                    "Cultivating tomorrow with real-time data and artificial intelligence."
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto -mt-10 relative z-20">
+                            <div className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100 flex items-center hover:-translate-y-1 transition transform cursor-pointer" onClick={() => setCurrentView('dashboard')}>
+                                <div className="bg-blue-50 text-blue-500 p-3 rounded-xl text-xl mr-4 shadow-inner"><i className="fa-solid fa-satellite-dish"></i></div>
+                                <div>
+                                    <h3 className="text-gray-400 text-[11px] font-bold uppercase tracking-wider">Active Sensors</h3>
+                                    <p className="text-2xl font-black text-gray-800">{activeSensorsCount}</p>
+                                </div>
+                            </div>
+                            <div className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100 flex items-center hover:-translate-y-1 transition transform cursor-pointer" onClick={() => setCurrentView('analysis')}>
+                                <div className="bg-purple-50 text-purple-500 p-3 rounded-xl text-xl mr-4 shadow-inner"><i className="fa-solid fa-brain"></i></div>
+                                <div>
+                                    <h3 className="text-gray-400 text-[11px] font-bold uppercase tracking-wider">AI Engine</h3>
+                                    <p className="text-lg font-black text-emerald-500">Gemini Active</p>
+                                </div>
+                            </div>
+                            <div className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100 flex items-center">
+                                <div className={`p-3 rounded-xl text-xl mr-4 shadow-inner ${connected ? 'bg-emerald-50 text-emerald-500' : 'bg-red-50 text-red-500'}`}>
+                                    <i className="fa-solid fa-server"></i>
+                                </div>
+                                <div>
+                                    <h3 className="text-gray-400 text-[11px] font-bold uppercase tracking-wider">API Server</h3>
+                                    <p className={`text-lg font-black ${connected ? 'text-emerald-500' : 'text-red-500'}`}>{connected ? 'Connected' : 'Disconnected'}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="max-w-5xl mx-auto px-6 mt-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-gray-100 p-8 hover:shadow-md transition">
+                                <div className="flex items-center mb-4">
+                                    <div className="bg-emerald-100 text-emerald-600 p-3 rounded-xl mr-4"><i className="fa-solid fa-seedling text-xl"></i></div>
+                                    <h3 className="text-xl font-bold text-gray-800">About SmartFarm Project</h3>
+                                </div>
+                                <p className="text-gray-600 text-sm leading-relaxed mb-4">Developed as a comprehensive engineering solution, this platform represents the future of precision agriculture. By integrating real-time IoT sensors with a robust FastAPI backend, we enable continuous monitoring of critical environmental factors such as Temperature, Humidity, and CO2 levels.</p>
+                                <p className="text-gray-600 text-sm leading-relaxed">The next phase involves deploying Machine Learning models and LLMs to predict crop yields, automate irrigation systems, and generate smart agricultural reports, ultimately creating a fully autonomous farming ecosystem.</p>
+                            </div>
+                            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 hover:shadow-md transition">
+                                <div className="flex items-center mb-6">
+                                    <div className="bg-blue-100 text-blue-600 p-3 rounded-xl mr-4"><i className="fa-solid fa-earth-africa text-xl"></i></div>
+                                    <h3 className="text-xl font-bold text-gray-800">Core Objectives</h3>
+                                </div>
+                                <ul className="space-y-5">
+                                    <li className="flex items-start"><i className="fa-solid fa-droplet text-blue-500 mt-1 mr-3 text-lg"></i><div><h4 className="text-sm font-bold text-gray-800">Water Conservation</h4><p className="text-[11px] text-gray-500 mt-0.5">Smart irrigation based on live data.</p></div></li>
+                                    <li className="flex items-start"><i className="fa-solid fa-leaf text-emerald-500 mt-1 mr-3 text-lg"></i><div><h4 className="text-sm font-bold text-gray-800">Yield Optimization</h4><p className="text-[11px] text-gray-500 mt-0.5">Tracking ideal CO2 & light conditions.</p></div></li>
+                                    <li className="flex items-start"><i className="fa-solid fa-bolt text-yellow-500 mt-1 mr-3 text-lg"></i><div><h4 className="text-sm font-bold text-gray-800">Energy Efficiency</h4><p className="text-[11px] text-gray-500 mt-0.5">Automated actuator control.</p></div></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            // --- VIEW : DASHBOARD ---
+            const renderDashboard = () => {
+                const activeSensors = Object.entries(sensors).filter(([id, data]) => data.online === true);
+                return (
+                    <div className="p-8 flex-1 overflow-y-auto bg-gray-50 animate-fade-in pb-24">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-2xl font-extrabold text-gray-800 mb-1">Real-time Supervision</h2>
+                                <p className="text-sm text-gray-500 font-medium">Control of agricultural zones and actuators</p>
+                            </div>
+                        </div>
+                        {activeSensors.length === 0 ? (
+                            <div className="text-center text-gray-400 mt-16 bg-white p-8 rounded-2xl shadow-sm border border-gray-100 max-w-xl mx-auto">
+                                <i className="fa-solid fa-tower-broadcast text-4xl mb-4 animate-pulse text-gray-300"></i>
+                                <p className="text-xl font-bold text-gray-600 mb-2">No active zones</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                {activeSensors.map(([id, data]) => (
+                                    <div key={id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
+                                        <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
+                                        <div className="p-4 flex justify-between items-center border-b border-gray-50 ml-1">
+                                            <h3 className="text-base font-bold text-gray-800 flex items-center">
+                                                {data.zone.includes('Tomates') || data.zone.includes('Tomato') ? <span className="text-red-500 mr-2 text-lg"><i className="fa-solid fa-pepper-hot"></i></span> : ''}
+                                                {data.zone.includes('Fraises') || data.zone.includes('Strawberry') ? <span className="text-pink-500 mr-2 text-lg"><i className="fa-solid fa-seedling"></i></span> : ''}
+                                                {data.zone || `Zone ${id}`}
+                                            </h3>
+                                            <span className="text-[10px] px-3 py-1 rounded-full font-bold bg-emerald-100 text-emerald-700 uppercase tracking-wide">Online</span>
+                                        </div>
+                                        <div className="p-4 grid grid-cols-2 lg:grid-cols-4 gap-3 ml-1">
+                                            <div className="text-center p-3 bg-gray-50 rounded-xl"><p className="text-gray-400 text-[10px] font-bold uppercase mb-1">Temperature</p><p className={`text-xl font-black ${data.temperature > 30 ? 'text-red-500' : 'text-gray-800'}`}>{data.temperature}°C</p></div>
+                                            <div className="text-center p-3 bg-gray-50 rounded-xl"><p className="text-gray-400 text-[10px] font-bold uppercase mb-1">Humidity</p><p className={`text-xl font-black ${data.humidity < 40 ? 'text-orange-500' : 'text-gray-800'}`}>{data.humidity}%</p></div>
+                                            <div className="text-center p-3 bg-gray-50 rounded-xl"><p className="text-gray-400 text-[10px] font-bold uppercase mb-1">CO2</p><p className="text-xl font-black text-gray-700">{data.co2} ppm</p></div>
+                                            <div className="text-center p-3 bg-gray-50 rounded-xl"><p className="text-gray-400 text-[10px] font-bold uppercase mb-1">Light</p><p className="text-xl font-black text-gray-700">{data.lux} lx</p></div>
+                                        </div>
+                                        <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex gap-3 ml-1">
+                                            <button onClick={() => sendAction(id, 'pump')} className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg text-sm font-bold shadow-sm transition"><i className="fa-solid fa-droplet mr-2"></i> Pump</button>
+                                            <button onClick={() => sendAction(id, 'fan')} className="flex-1 bg-purple-500 hover:bg-purple-600 text-white py-2 rounded-lg text-sm font-bold shadow-sm transition"><i className="fa-solid fa-fan mr-2"></i> Fan</button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            // --- VIEW : ANALYSIS (DYNAMIQUE PAR ZONE) ---
+            const renderAnalysis = () => {
+                const activeSensors = Object.entries(sensors).filter(([id, data]) => data.online === true);
+                
+                // On détermine la zone actuellement affichée (celle cliquée par l'utilisateur, ou la première par défaut)
+                const currentZoneId = selectedAnalysisZone || (activeSensors.length > 0 ? activeSensors[0][0] : null);
+                const currentZoneData = currentZoneId ? sensors[currentZoneId] : null;
+
+                // Logique dynamique pour l'IA (Les textes changent selon les vraies données de la zone !)
+                let yieldPrediction = "Standby";
+                let yieldValue = "--%";
+                let waterStatus = "Analyzing...";
+                let waterColor = "gray";
+
+                if (currentZoneData) {
+                    // Simulation d'analyse IA simple basée sur les données
+                    if (currentZoneData.temperature > 15 && currentZoneData.temperature < 28) {
+                        yieldValue = "94%"; yieldPrediction = "Optimal";
+                    } else {
+                        yieldValue = "65%"; yieldPrediction = "Sub-optimal";
+                    }
+                    
+                    if (currentZoneData.humidity > 60) {
+                        waterStatus = "Irrigation paused (Soil moist)"; waterColor = "blue";
+                    } else {
+                        waterStatus = "Irrigation recommended"; waterColor = "orange";
+                    }
+                }
+
+                return (
+                    <div className="p-8 flex-1 overflow-y-auto bg-gray-50 animate-fade-in pb-24">
+                        <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between">
+                            <div>
+                                <h2 className="text-3xl font-extrabold text-gray-800 mb-2">Analysis & Big Data</h2>
+                                <p className="text-gray-500 font-medium">Real-time metrics and AI-driven insights for specific zones</p>
+                            </div>
+                        </div>
+
+                        {/* NOUVEAU : SÉLECTEUR DE ZONE (TABS) */}
+                        {activeSensors.length > 0 && (
+                            <div className="flex space-x-2 mb-6 bg-gray-200/50 p-1 rounded-xl w-max">
+                                {activeSensors.map(([id, data]) => (
+                                    <button 
+                                        key={id} 
+                                        onClick={() => setSelectedAnalysisZone(id)}
+                                        className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${currentZoneId === id ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'}`}
+                                    >
+                                        {data.zone.includes('Tomates') || data.zone.includes('Tomato') ? '🍅 ' : ''}
+                                        {data.zone.includes('Fraises') || data.zone.includes('Strawberry') ? '🍓 ' : ''}
+                                        {data.zone}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {activeSensors.length === 0 ? (
+                            <div className="text-center text-gray-400 mt-16 bg-white p-8 rounded-2xl border border-gray-100"><p className="font-bold">No active zones to analyze.</p></div>
+                        ) : (
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                {/* GRAPHIQUE PRINCIPAL DYNAMIQUE */}
+                                <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-lg font-bold text-gray-800 flex items-center">
+                                            <i className="fa-solid fa-chart-area text-purple-500 mr-3"></i> Live Trends - {currentZoneData?.zone}
+                                        </h3>
+                                        <span className="bg-purple-50 text-purple-600 px-3 py-1 rounded-full text-xs font-bold animate-pulse">Live Sync</span>
+                                    </div>
+                                    
+                                    <div className="h-80 w-full">
+                                        {chartData.length > 0 ? (
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                                    <defs>
+                                                        <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/><stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                                                        </linearGradient>
+                                                        <linearGradient id="colorHum" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                                    <XAxis dataKey="time" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                                                    <YAxis yAxisId="left" stroke="#ef4444" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                                                    <YAxis yAxisId="right" orientation="right" stroke="#3b82f6" fontSize={10} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                                                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }} />
+                                                    
+                                                    {/* ON AFFICHE UNIQUEMENT LES LIGNES DE LA ZONE SÉLECTIONNÉE */}
+                                                    <Area yAxisId="left" type="monotone" dataKey={`temp_${currentZoneId}`} name="Temp (°C)" stroke="#ef4444" strokeWidth={3} fillOpacity={1} fill="url(#colorTemp)" isAnimationActive={false} />
+                                                    <Area yAxisId="right" type="monotone" dataKey={`hum_${currentZoneId}`} name="Humidity (%)" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorHum)" isAnimationActive={false} />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        ) : (
+                                            <div className="h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                                                <i className="fa-solid fa-satellite-dish fa-spin text-4xl mb-4 text-gray-300"></i>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* CARTES D'INSIGHTS IA */}
+                                <div className="space-y-6">
+                                    {/* Prédiction de Rendement */}
+                                    <div className="bg-gradient-to-br from-purple-600 to-indigo-700 p-6 rounded-3xl shadow-lg text-white relative overflow-hidden">
+                                        <i className="fa-solid fa-leaf absolute -right-4 -top-4 text-6xl text-white opacity-10"></i>
+                                        <div className="flex items-center justify-between mb-4 relative z-10">
+                                            <h3 className="font-bold text-lg"><i className="fa-solid fa-brain mr-2"></i> AI Yield Prediction</h3>
+                                        </div>
+                                        <div className="flex items-end gap-2 mb-2 relative z-10">
+                                            <span className="text-5xl font-black">{yieldValue}</span>
+                                            <span className="text-purple-200 mb-1.5 text-sm font-bold uppercase tracking-wider">{yieldPrediction}</span>
+                                        </div>
+                                        <p className="text-sm text-purple-100 font-light mt-4 relative z-10">
+                                            Analysis specifically calculated for <strong>{currentZoneData?.zone}</strong> based on current algorithms.
+                                        </p>
+                                    </div>
+
+                                    {/* Optimisation des ressources */}
+                                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                                        <h3 className="font-bold text-gray-800 mb-4"><i className={`fa-solid fa-droplet text-${waterColor}-500 mr-2`}></i> Water Optimization</h3>
+                                        <div className="mb-2 flex justify-between text-sm">
+                                            <span className="text-gray-500 font-medium">Status</span>
+                                            <span className={`font-bold text-${waterColor}-600`}>{waterStatus}</span>
+                                        </div>
+                                        <div className="w-full bg-gray-100 rounded-full h-3 mb-4">
+                                            <div className={`bg-gradient-to-r from-${waterColor}-400 to-${waterColor}-600 h-3 rounded-full w-[${currentZoneData?.humidity || 50}%] shadow-sm`}></div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Détection d'anomalies */}
+                                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                                        <h3 className="font-bold text-gray-800 mb-4"><i className="fa-solid fa-shield-halved text-emerald-500 mr-2"></i> System Health</h3>
+                                        <div className="flex items-center p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                                            <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse mr-3 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+                                            <p className="text-sm font-bold text-emerald-800">Zone sensors operating perfectly.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="flex h-screen w-full bg-gray-100 font-sans">
+                    <aside className={`bg-gray-950 text-white flex flex-col shadow-2xl z-20 transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64' : 'w-20'}`}>
+                        <div className={`p-4 flex items-center h-20 border-b border-gray-800 ${sidebarOpen ? 'justify-between' : 'justify-center cursor-pointer hover:bg-gray-800 transition'}`} onClick={!sidebarOpen ? () => setSidebarOpen(true) : undefined}>
+                            {sidebarOpen ? (
+                                <div className="flex items-center overflow-hidden">
+                                    <div className="bg-emerald-500 p-2 rounded-lg mr-3 shadow-lg shadow-emerald-500/30 shrink-0"><i className="fa-solid fa-leaf text-white text-sm"></i></div>
+                                    <h1 className="text-base font-black tracking-wider whitespace-nowrap">SMART<span className="text-emerald-500">FARM</span></h1>
+                                </div>
+                            ) : (<i className="fa-solid fa-bars text-gray-300 text-xl"></i>)}
+                            {sidebarOpen && (<button onClick={() => setSidebarOpen(false)} className="text-gray-400 hover:text-white transition w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-800"><i className="fa-solid fa-chevron-left text-sm"></i></button>)}
+                        </div>
+                        
+                        <nav className="flex-1 px-3 py-6 space-y-3">
+                            {renderMenuBtn('home', 'fa-house', 'Home')}
+                            {renderMenuBtn('dashboard', 'fa-table-cells-large', 'Monitoring')}
+                            {renderMenuBtn('analysis', 'fa-chart-line', 'AI Analysis')}
+                        </nav>
+
+                        <div className="p-4 mb-2">
+                            <div className={`flex items-center justify-center p-3 rounded-xl border ${sidebarOpen ? 'border-gray-800 bg-gray-900' : 'border-transparent'}`}>
+                                <div className={`shrink-0 w-2.5 h-2.5 rounded-full ${connected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-red-500'} ${sidebarOpen ? 'mr-3' : ''}`}></div>
+                                {sidebarOpen && (
+                                    <div className="overflow-hidden">
+                                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-0.5 whitespace-nowrap">API Status</p>
+                                        <span className="text-xs font-bold text-gray-300 whitespace-nowrap">{connected ? 'Connected' : 'Disconnected'}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </aside>
+
+                    <main className="flex-1 flex flex-col relative h-screen overflow-hidden bg-gray-50">
+                        {currentView === 'home' && renderHome()}
+                        {currentView === 'dashboard' && renderDashboard()}
+                        {currentView === 'analysis' && renderAnalysis()}
+                    </main>
+
+                    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+                        {chatOpen && (
+                            <div className="bg-white w-80 rounded-2xl shadow-2xl border border-gray-200 overflow-hidden mb-4 flex flex-col h-[450px] animate-fade-in origin-bottom-right">
+                                <div className="bg-emerald-600 p-4 flex justify-between items-center text-white z-10 relative">
+                                    <div className="flex items-center">
+                                        <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center mr-3 shadow-inner"><i className="fa-solid fa-robot text-sm"></i></div>
+                                        <div><h3 className="font-extrabold text-sm leading-tight">AgriBot AI</h3><p className="text-[10px] text-emerald-100 font-medium flex items-center mt-0.5"><span className="w-1.5 h-1.5 rounded-full bg-green-300 mr-1.5 animate-pulse"></span>Powered by Gemini</p></div>
+                                    </div>
+                                    <button onClick={() => setChatOpen(false)} className="hover:bg-emerald-700 w-7 h-7 rounded-full transition flex justify-center items-center"><i className="fa-solid fa-xmark"></i></button>
+                                </div>
+                                
+                                <div className="flex-1 p-4 overflow-y-auto bg-gray-50 flex flex-col space-y-3">
+                                    {chatMessages.map((msg, idx) => (
+                                        <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`px-4 py-2.5 rounded-2xl max-w-[85%] text-[13px] shadow-sm font-medium leading-relaxed ${msg.sender === 'user' ? 'bg-emerald-500 text-white rounded-tr-none' : 'bg-white border border-gray-200 text-gray-700 rounded-tl-none'}`}>{msg.text}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-gray-100 flex items-center gap-2">
+                                    <input type="text" value={inputMsg} onChange={(e) => setInputMsg(e.target.value)} placeholder="Ask a question..." className="flex-1 bg-gray-100 border-none rounded-full px-4 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition shadow-inner" />
+                                    <button type="submit" className="bg-emerald-500 text-white w-9 h-9 rounded-full hover:bg-emerald-600 transition flex items-center justify-center shrink-0 shadow-md hover:-translate-y-0.5 transform"><i className="fa-solid fa-paper-plane text-xs"></i></button>
+                                </form>
+                            </div>
+                        )}
+
+                        <button onClick={() => setChatOpen(!chatOpen)} className="relative bg-emerald-500 text-white w-14 h-14 rounded-full shadow-[0_8px_20px_rgba(16,185,129,0.4)] hover:bg-emerald-600 hover:scale-105 transition-all duration-300 flex items-center justify-center text-xl z-50 border-[3px] border-white">
+                            {chatOpen ? <i className="fa-solid fa-xmark"></i> : <i className="fa-solid fa-message"></i>}
+                            {!chatOpen && (<span className="absolute top-0 right-0 flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border border-white"></span></span>)}
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+    
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</body>
+</html>

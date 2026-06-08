@@ -1,0 +1,41 @@
+2026-04-21 16:32:09,018 [INFO] main :: assignment: {'C0': [0, 2], 'C1': [1, 3]}
+2026-04-21 16:32:09,020 [INFO] consumers :: [C0] assigned partitions: [0, 2]
+2026-04-21 16:32:09,020 [INFO] consumers :: [C1] assigned partitions: [1, 3]
+2026-04-21 16:32:11,067 [INFO] main :: final offsets: [{'event_id': 'e-00001', 'sensor_id': 'sensor-01', 'site_id': 'SITE-01', 'event_time': '2026-04-20T08:00:00', 'temperature_c': 22.3, 'humidity_pct': 58.1, 'partition_key': 'sensor-01'}, {'event_id': 'e-00002', 'sensor_id': 'sensor-HOT-01', 'site_id': 'SITE-02', 'event_time': '2026-04-20T08:00:01', 'temperature_c': 21.9, 'humidity_pct': 62.4, 'partition_key': 'sensor-HOT-01'}, {'event_id': 'e-00003', 'sensor_id': 'sensor-02', 'site_id': 'SITE-01', 'event_time': '2026-04-20T08:00:02', 'temperature_c': 23.0, 'humidity_pct': 55.0, 'partition_key': 'sensor-02'}, {'event_id': 'e-00004', 'sensor_id': 'sensor-HOT-01', 'site_id': 'SITE-02', 'event_time': '2026-04-20T08:00:03', 'temperature_c': 22.1, 'humidity_pct': 62.0, 'partition_key': 'sensor-HOT-01'}, {'event_id': 'e-00005', 'sensor_id': 'sensor-03', 'site_id': 'SITE-03', 'event_time': '2026-04-20T08:00:04', 'temperature_c': 24.5, 'humidity_pct': 51.2, 'partition_key': 'sensor-03'}]
+2026-04-21 16:32:58,351 [INFO] main :: assignment: {'C0': [0], 'C1': [1], 'C2': [2], 'C3': [3]}
+2026-04-21 16:32:58,351 [INFO] consumers :: [C0] assigned partitions: [0]
+2026-04-21 16:32:58,351 [INFO] consumers :: [C1] assigned partitions: [1]
+2026-04-21 16:32:58,351 [INFO] consumers :: [C2] assigned partitions: [2]
+2026-04-21 16:32:58,351 [INFO] consumers :: [C3] assigned partitions: [3]
+2026-04-21 16:33:00,387 [INFO] main :: final offsets: [{'event_id': 'e-00001', 'sensor_id': 'sensor-01', 'site_id': 'SITE-01', 'event_time': '2026-04-20T08:00:00', 'temperature_c': 22.3, 'humidity_pct': 58.1, 'partition_key': 'sensor-01'}, {'event_id': 'e-00002', 'sensor_id': 'sensor-HOT-01', 'site_id': 'SITE-02', 'event_time': '2026-04-20T08:00:01', 'temperature_c': 21.9, 'humidity_pct': 62.4, 'partition_key': 'sensor-HOT-01'}, {'event_id': 'e-00003', 'sensor_id': 'sensor-02', 'site_id': 'SITE-01', 'event_time': '2026-04-20T08:00:02', 'temperature_c': 23.0, 'humidity_pct': 55.0, 'partition_key': 'sensor-02'}, {'event_id': 'e-00004', 'sensor_id': 'sensor-HOT-01', 'site_id': 'SITE-02', 'event_time': '2026-04-20T08:00:03', 'temperature_c': 22.1, 'humidity_pct': 62.0, 'partition_key': 'sensor-HOT-01'}, {'event_id': 'e-00005', 'sensor_id': 'sensor-03', 'site_id': 'SITE-03', 'event_time': '2026-04-20T08:00:04', 'temperature_c': 24.5, 'humidity_pct': 51.2, 'partition_key': 'sensor-03'}]
+2026-04-21 16:33:24,245 [INFO] main :: assignment: {'C0': [0], 'C1': [1], 'C2': [2], 'C3': [3]}
+2026-04-21 16:33:24,246 [INFO] consumers :: [C0] assigned partitions: [0]
+2026-04-21 16:33:24,246 [INFO] consumers :: [C1] assigned partitions: [1]
+2026-04-21 16:33:24,246 [INFO] consumers :: [C2] assigned partitions: [2]
+2026-04-21 16:33:24,246 [INFO] consumers :: [C3] assigned partitions: [3]
+2026-04-21 16:33:26,288 [INFO] main :: final offsets: [{'event_id': 'e-00001', 'sensor_id': 'sensor-01', 'site_id': 'SITE-01', 'event_time': '2026-04-20T08:00:00', 'temperature_c': 22.3, 'humidity_pct': 58.1, 'partition_key': 'sensor-01'}, {'event_id': 'e-00002', 'sensor_id': 'sensor-HOT-01', 'site_id': 'SITE-02', 'event_time': '2026-04-20T08:00:01', 'temperature_c': 21.9, 'humidity_pct': 62.4, 'partition_key': 'sensor-HOT-01'}, {'event_id': 'e-00003', 'sensor_id': 'sensor-02', 'site_id': 'SITE-01', 'event_time': '2026-04-20T08:00:02', 'temperature_c': 23.0, 'humidity_pct': 55.0, 'partition_key': 'sensor-02'}, {'event_id': 'e-00004', 'sensor_id': 'sensor-HOT-01', 'site_id': 'SITE-02', 'event_time': '2026-04-20T08:00:03', 'temperature_c': 22.1, 'humidity_pct': 62.0, 'partition_key': 'sensor-HOT-01'}, {'event_id': 'e-00005', 'sensor_id': 'sensor-03', 'site_id': 'SITE-03', 'event_time': '2026-04-20T08:00:04', 'temperature_c': 24.5, 'humidity_pct': 51.2, 'partition_key': 'sensor-03'}]
+2026-04-21 16:33:45,992 [INFO] main :: assignment: {'C0': [0], 'C1': [1], 'C2': [2], 'C3': [3]}
+2026-04-21 16:33:45,994 [INFO] consumers :: [C0] assigned partitions: [0]
+2026-04-21 16:33:45,995 [INFO] consumers :: [C1] assigned partitions: [1]
+2026-04-21 16:33:45,995 [INFO] consumers :: [C2] assigned partitions: [2]
+2026-04-21 16:33:45,996 [INFO] consumers :: [C3] assigned partitions: [3]
+2026-04-21 16:33:48,039 [INFO] main :: final offsets: [{'event_id': 'e-00001', 'sensor_id': 'sensor-01', 'site_id': 'SITE-01', 'event_time': '2026-04-20T08:00:00', 'temperature_c': 22.3, 'humidity_pct': 58.1, 'partition_key': 'sensor-01'}, {'event_id': 'e-00002', 'sensor_id': 'sensor-HOT-01', 'site_id': 'SITE-02', 'event_time': '2026-04-20T08:00:01', 'temperature_c': 21.9, 'humidity_pct': 62.4, 'partition_key': 'sensor-HOT-01'}, {'event_id': 'e-00003', 'sensor_id': 'sensor-02', 'site_id': 'SITE-01', 'event_time': '2026-04-20T08:00:02', 'temperature_c': 23.0, 'humidity_pct': 55.0, 'partition_key': 'sensor-02'}, {'event_id': 'e-00004', 'sensor_id': 'sensor-HOT-01', 'site_id': 'SITE-02', 'event_time': '2026-04-20T08:00:03', 'temperature_c': 22.1, 'humidity_pct': 62.0, 'partition_key': 'sensor-HOT-01'}, {'event_id': 'e-00005', 'sensor_id': 'sensor-03', 'site_id': 'SITE-03', 'event_time': '2026-04-20T08:00:04', 'temperature_c': 24.5, 'humidity_pct': 51.2, 'partition_key': 'sensor-03'}]
+2026-04-21 16:35:34,810 [INFO] main :: assignment: {'C0': [0, 2], 'C1': [1, 3]}
+2026-04-21 16:35:34,810 [INFO] consumers :: [C0] assigned partitions: [0, 2]
+2026-04-21 16:35:34,810 [INFO] consumers :: [C1] assigned partitions: [1, 3]
+2026-04-21 16:35:36,818 [INFO] main :: [metrics] {'backlog': {0: 0, 1: 0, 2: 0, 3: 0}, 'lag': 0, 'throughput': {}}
+2026-04-21 16:35:38,820 [INFO] main :: [metrics] {'backlog': {0: 0, 1: 0, 2: 0, 3: 0}, 'lag': 0, 'throughput': {}}
+2026-04-21 16:35:40,822 [INFO] main :: [metrics] {'backlog': {0: 0, 1: 0, 2: 0, 3: 0}, 'lag': 0, 'throughput': {}}
+2026-04-21 16:35:42,823 [INFO] main :: [metrics] {'backlog': {0: 0, 1: 0, 2: 0, 3: 0}, 'lag': 0, 'throughput': {}}
+2026-04-21 16:35:44,824 [INFO] main :: [metrics] {'backlog': {0: 0, 1: 0, 2: 0, 3: 0}, 'lag': 0, 'throughput': {}}
+2026-04-21 16:35:46,825 [INFO] main :: [metrics] {'backlog': {0: 0, 1: 0, 2: 0, 3: 1}, 'lag': 1, 'throughput': {'C1': 3.8}}
+2026-04-21 16:35:48,826 [INFO] main :: [metrics] {'backlog': {0: 0, 1: 0, 2: 0, 3: 1}, 'lag': 1, 'throughput': {'C1': 9.2}}
+2026-04-21 16:35:50,828 [INFO] main :: [metrics] {'backlog': {0: 0, 1: 0, 2: 0, 3: 0}, 'lag': 0, 'throughput': {'C1': 12.4}}
+2026-04-21 16:35:52,829 [INFO] main :: [metrics] {'backlog': {0: 0, 1: 0, 2: 0, 3: 1}, 'lag': 1, 'throughput': {'C1': 11.2}}
+2026-04-21 16:35:54,831 [INFO] main :: [metrics] {'backlog': {0: 0, 1: 0, 2: 0, 3: 0}, 'lag': 0, 'throughput': {'C1': 11.2}}
+2026-04-21 16:35:56,833 [INFO] main :: [metrics] {'backlog': {0: 0, 1: 0, 2: 0, 3: 0}, 'lag': 0, 'throughput': {'C1': 11.0}}
+2026-04-21 16:35:58,834 [INFO] main :: [metrics] {'backlog': {0: 0, 1: 0, 2: 0, 3: 0}, 'lag': 0, 'throughput': {'C1': 12.0}}
+2026-04-21 16:36:00,834 [INFO] main :: [metrics] {'backlog': {0: 0, 1: 0, 2: 0, 3: 2}, 'lag': 2, 'throughput': {'C1': 12.6}}
+2026-04-21 16:36:02,836 [INFO] main :: [metrics] {'backlog': {0: 0, 1: 0, 2: 0, 3: 1}, 'lag': 1, 'throughput': {'C1': 12.6}}
+2026-04-21 16:36:04,838 [INFO] main :: [metrics] {'backlog': {0: 0, 1: 0, 2: 0, 3: 2}, 'lag': 2, 'throughput': {'C1': 12.4, 'C0': 0.6}}
+2026-04-21 16:36:04,884 [INFO] main :: final offsets: {'agri-stats': {'0': 142, '1': 321, '2': 143, '3': 373}}
